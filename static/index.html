@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>test</title>
+</head>
+<body>
+
+<script src="jquery.min.js"></script>
+<script>
+    var host = '127.0.0.1';
+    var port = 3001;
+    var url = 'ws://'+host+':'+port+'/';
+    var ws = new WebSocket(url);
+
+    ws.onopen = function(){
+        login();
+    };
+
+    ws.onmessage = function (e) {
+        var obj = JSON.parse(e.data);
+        console.info(obj.method);
+        if (obj.data) {
+            console.info(obj.data);
+        }
+    };
+
+    function login () {
+        ws.send(JSON.stringify({
+            method: 'login',
+            data: {
+                user_name: 'luoye',
+                version: '1.0',
+                token: 'huangyuhaohahahahahahah1231',
+                os: 'windows',
+                app_version: 'v1.0',
+                city_id: 15,
+                user_id: 414,
+                time: new Date().valueOf(),
+                app_name: 'duobao',
+                user_type: 'p'
+            }
+        }));
+    }
+
+    function get_query_group () {
+        ws.send(JSON.stringify({
+            method: 'get_query_group',
+            data: {
+                query_group: 1
+            }
+        }));
+    }
+
+    function indiana () {
+        ws.send(JSON.stringify({
+            method: 'indiana',
+            data: {
+                query_group: 1,
+                query_ranking: 3,
+                amount: -10
+            }
+        }));
+    }
+
+    function update () {
+        $.ajax({
+            url: '/activity/update',
+            type: 'post',
+            dateType: 'json',
+            data: {
+                group_id: 1,
+                ranking_id: 4
+            },
+            success: function (re) {
+                console.info(re);
+            }
+        });
+    }
+</script>
+</body>
+</html>
