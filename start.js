@@ -253,9 +253,9 @@ function getQueryGroup (obj, conn) {
             });
 
             _.each(result, function (item, i) {
-                var curRanking = curGroupRanking[item.id];
-                item['first_user_id'] = curRanking ? curRanking[0]['user_id'] : '';
-                item['first_user_name'] = curRanking ? curRanking[0]['user_name'] : item['winnerName'] || '';
+                var curRankingInfo = curGroupRanking[item.id];
+                item['first_user_id'] = curRankingInfo && curRankingInfo.length > 0 ? curRankingInfo[0]['user_id'] : '';
+                item['first_user_name'] = curRankingInfo && curRankingInfo.length > 0 ? curRankingInfo[0]['user_name'] : item['winnerName'] || '';
             });
         }
 
@@ -291,7 +291,7 @@ function getQueryRanking (obj, conn) {
                 _.each(data, function (item, field) {
                     //获取该排行榜的所有用户夺宝信息
                     if (field.indexOf(groupId + '_' + rankingId + '_') != -1) {
-                        curRankingInfo.push(item);
+                        curRankingInfo.push(JSON.parse(item));
                     }
                 });
             }
@@ -301,6 +301,8 @@ function getQueryRanking (obj, conn) {
             });
 
             curRanking.ranking_info = curRankingInfo;
+            curRanking['first_user_id'] = curRankingInfo.length > 0 ? curRankingInfo[0]['user_id'] : '';
+            curRanking['first_user_name'] = curRankingInfo.length > 0 ? curRankingInfo[0]['user_name'] : curRanking['winnerName'] || '';
 
             //回传排行榜详情
             conn.sendText(JSON.stringify({
@@ -537,7 +539,7 @@ function checkActivity () {
                         _.each(data, function (item, field) {
                             //获取该排行榜的所有用户夺宝信息
                             if (field.indexOf(fieldIndex) != -1) {
-                                curRankingInfo.push(item);
+                                curRankingInfo.push(JSON.parse(item));
                             }
                         });
                     }
