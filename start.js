@@ -19,7 +19,7 @@ var app = require('./app'),//引入 app.js 导出的 app 实例
     server = null,
     userCount = 0,
     requestConfig = {
-        host: '127.0.0.1',
+        host: 'xxx',
         port: 80,
         paths: {
             queryGroups: '/hbiInterface/onlineTreasure/queryGroups',
@@ -176,7 +176,7 @@ function initWebSocket () {
 
     //轮询计时器
     setInterval(function () {
-        checkActivity();
+        //checkActivity();
     }, 1000);
 }
 
@@ -193,30 +193,70 @@ function login (obj, conn) {
     conn.curUser.app_name = obj.app_name;
     conn.curUser.app_version = obj.app_version;
     conn.curUser.city_id = obj.city_id;
+    conn.curUser.phone = obj.phone;
 
     //验证用户
-    sendHttpRequest('POST', obj.user_type.toUpperCase() == 'C' ? requestConfig.paths.getUserInfoC : requestConfig.paths.getUserInfoP, {
-        userId: conn.curUser.id
-    }, function (re) {
+    var postData = queryString.stringify({
+            userId: conn.curUser.id
+        }),
+        options = {
+            hostname: requestConfig.host,
+            port: requestConfig.port,
+            path: obj.user_type.toUpperCase() == 'C' ? requestConfig.paths.getUserInfoC : requestConfig.paths.getUserInfoP,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+        },
+        callBack = function (re) {
 
-        if (re && re.returnCode == 0 && obj.token == re.data.token) {
-            //保存用户头像url
-            conn.curUser.photo_url = re.data.photoUrl;
-            //回传登录成功信息
-            conn.sendText(JSON.stringify({
-                method: 'login_success'
-            }));
-        } else {
-            //回传登录失败信息
-            conn.sendText(JSON.stringify({
-                method: 'login_fail',
-                data: {
-                    msg: re.error
-                }
-            }));
-        }
+            if (re && re.returnCode == 0) {
+                //保存用户头像url
+                conn.curUser.photo_url = re.data.photoUrl;
+                //回传登录成功信息
+                conn.sendText(JSON.stringify({
+                    method: 'login_success',
+                    data: {
+                        token: re.data.token
+                    }
+                }));
+            } else {
+                //回传登录失败信息
+                conn.sendText(JSON.stringify({
+                    method: 'login_fail',
+                    data: {
+                        msg: re.error
+                    }
+                }));
+            }
 
+        };
+
+    var request = http.request(options, function (response) {
+        response.setEncoding('utf8');
+        response.on('data', function (re) {
+            var _re = JSON.parse(re);
+            //如果 header 有返回 token，直接回传给前端，否则把前端传过来的 token 回传过去
+            _re.data && (_re.data.token = response.headers.token || obj.token);
+            callBack && callBack(_re);
+        });
+        response.on('end', function (re) {
+            console.log('请求结束');
+        });
+        response.on('error', function (e) {
+            callBack && callBack();
+        });
     });
+
+    //请求的 header 里写上 token 和 phone
+    request.setHeader('token', obj.token || '');
+    request.setHeader('phone', obj.phone || '');
+
+    if (postData) {
+        request.write(postData);
+    }
+
+    request.end();
 }
 
 //获取排行榜基础信息列表
@@ -418,14 +458,16 @@ function sendHttpRequest (method, path, params, callBack) {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
             }
-        };
+        },
+        str = '';
 
     var request = http.request(options, function (response) {
         response.setEncoding('utf8');
         response.on('data', function (re) {
-            callBack && callBack(JSON.parse(re));
+            str += re;
         });
         response.on('end', function (re) {
+            callBack && callBack(JSON.parse(str));
             console.log('请求结束');
         });
         response.on('error', function (e) {
