@@ -18,17 +18,7 @@ var app = require('./app'),//引入 app.js 导出的 app 实例
     _ = require('underscore'),//引入 underscore 模块
     server = null,
     userCount = 0,
-    requestConfig = {
-        host: 'xxx',
-        port: 80,
-        paths: {
-            queryGroups: '/hbiInterface/onlineTreasure/queryGroups',
-            increaseJewel: '/hbiInterface/user/increaseJewel',
-            getUserInfoC: '/hbiInterface/compereUser/getUserInfo4GameServer',
-            getUserInfoP: '/hbiInterface/playerUser/getUserInfo4GameServer',
-            queryWinner: '/hbiInterface/onlineTreasure/queryWinner'
-        }
-    };//发送http请求的相关配置
+    requestConfig = require('./dataSrv/settings')['requestConfig'];//发送http请求的相关配置
 
 //redis服务连上后，对全局变量 rankingGroup 进行初始化
 redisClient.on('connect', function () {
@@ -176,7 +166,7 @@ function initWebSocket () {
 
     //轮询计时器
     setInterval(function () {
-        //checkActivity();
+        checkActivity();
     }, 1000);
 }
 
@@ -212,7 +202,7 @@ function login (obj, conn) {
 
             if (re && re.returnCode == 0) {
                 //保存用户头像url
-                conn.curUser.photo_url = re.data.photoUrl;
+                conn.curUser.photo_url = re.data.playerProfile.photoUrl;
                 //回传登录成功信息
                 conn.sendText(JSON.stringify({
                     method: 'login_success',
@@ -508,6 +498,7 @@ function updateRankingInfo (obj, conn, callBack) {
             curInfo['click_times'] += 1;
             curInfo['paid_amount'] += obj['amount'];
             curInfo['last_time'] = new Date().valueOf();
+            curInfo['photo_url'] = conn.curUser.photo_url;
         } else {
             //没找到当前用户的夺宝信息，新建一个用户夺宝信息对象
             curInfo = {
